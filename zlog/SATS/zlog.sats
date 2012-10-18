@@ -44,7 +44,7 @@
 
 (* ****** ****** *)
 
-#define ATS_STAFLAGLOAD 0  // no static loading at run-time
+// #define ATS_STAFLAGLOAD 0  // no static loading at run-time
 
 fun atslib_zlog_init (confpath: string): int = "atslib_zlog_init"
 
