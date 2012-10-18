@@ -44,7 +44,7 @@ ATSOPT=$(ATSUSRQ)/bin/atsopt
 
 # todo
 # This is the include directory for compiling ats source files.
-ATSCCFLAGS=-IATS $(CWD)/contrib
+ATSCCFLAGS=-IATS $(CWD)/SATS
 
 ATS_CC_INC=-I $(ATSRUNTIME) -I $(ATSUSRQ) -I $(CWD)
 
@@ -87,7 +87,7 @@ define make-zlog_test
   zlog_test  += $1
   sources += $2
 
-  $1: $(call source-to-object,$2) check-env
+  $1: $(call source-to-object,$2) | check-env
 	$(CC) -o $$@ $(call source-to-object,$2) \
           -lzlog -L$(ZLOG_LIB) -pthread
 endef
@@ -98,7 +98,8 @@ define make-ats_zlog_lib
   ats_zlog_lib += $1
   sources    += $2
 
-  $1: $(call source-to-object,$2) check-env
+  $1: $(call source-to-object,$2) | check-env
+	echo $$@
 	$(AR) $(ARFLAGS) $$@ $(call source-to-object,$2)
 endef
 
@@ -108,10 +109,11 @@ define make-ats_zlog_program
   ats_zlog_program += $1
   sources  += $2
 
-  $1: $(call source-to-object,$2) $(ats_zlog_lib) check-env
+  # The following line uses | to specify that check-env is a special prerequisite
+  $1: $(call source-to-object,$2) $(ats_zlog_lib) | check-env
 	$(ATSCC) -o $$@ $$(filter %.o,$$^) \
-          -l$(patsubst lib%.a,%,$(notdir $(ats_zlog_lib))) -L$(dir $(cspats_lib)) \
-          -pthread
+          -l$(patsubst lib%.a,%,$(notdir $(ats_zlog_lib))) -L$(dir $(ats_zlog_lib)) \
+          -lzlog -L$(ZLOG_LIB) -pthread
 endef
 
 #= projects macro =================================
@@ -123,6 +125,7 @@ ats_zlog_lib    :=
 ats_zlog_program   :=
 zlog_test   :=
 sources   :=
+
 
 objects      = $(call source-to-object,$(sources))
 
@@ -157,7 +160,7 @@ dependencies = $(sats_dep) $(dats_dep) $(cxx_dep) $(c_dep) $(sats_c_dep) $(dats_
 
 # todo
 # add more directory as needed
-include_dirs := $(CWD) $(ZLOG_INC)
+include_dirs := $(CWD)/CATS $(ZLOG_INC)
 CPPFLAGS  += $(addprefix -I ,$(include_dirs))
 CFLAGS    += -O0
 CXXFLAGS  += -O0
@@ -167,7 +170,8 @@ CXXFLAGS  += -O0
 all:
 # todo add more xx.mk here
 include MISC/try_zlog/module.mk
-#include module.mk
+include ./module.mk  # for libats_zlog.a
+include TEST/module.mk # for building testing program
 
 # The following must be after the "include".
 
@@ -201,15 +205,22 @@ clean:
         $(dependencies) \
         $(ats_c_files)
 
-
+.PHONY: check-env
 check-env:
 ifndef ZLOG_PATH
-	$(error ZLOG_PATH is undefined)
+	$(error ZLOG_PATH is undefined.)
+endif
+ifeq ($(wildcard $(ZLOG_INC)/zlog.h), )
+	$(error ZLOG_INC is not correct.)
+endif
+ifeq ($(wildcard $(ZLOG_LIB)/libzlog.so), )
+	$(error ZLOG_LIB is not correct.)
 endif
 
-
 ifneq "$(MAKECMDGOALS)" "clean"
-  include $(dependencies)
+  ifneq "$(MAKECMDGOALS)" "cleanall"
+    include $(dependencies)
+  endif
 endif
 
 # = rules ========================================
