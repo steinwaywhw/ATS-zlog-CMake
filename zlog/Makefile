@@ -17,7 +17,7 @@ SED := sed
 
 # todo
 # modify ZLOG_PATH according to your environment
-ZLOG_PATH := /home/grad2/aren/programs/zlog-1.2.4/zlog_install
+ZLOG_PATH := /home/atsuser/programs/zlog-1.2.4/install
 ZLOG_INC := $(ZLOG_PATH)/include
 ZLOG_LIB := $(ZLOG_PATH)/lib
 
@@ -88,7 +88,9 @@ define make-zlog_test
   zlog_test  += $1
   sources += $2
 
-  $1: $(call source-to-object,$2) | check-env
+  $(call source-to-object,$2): | check-env
+
+  $1: $(call source-to-object,$2)
 	$(CC) -o $$@ $(call source-to-object,$2) \
           -lzlog -L$(ZLOG_LIB) -pthread
 endef
@@ -99,7 +101,9 @@ define make-ats_zlog_lib
   ats_zlog_lib += $1
   sources    += $2
 
-  $1: $(call source-to-object,$2) | check-env
+  $(call source-to-object,$2): | check-env
+
+  $1: $(call source-to-object,$2)
 	echo $$@
 	$(AR) $(ARFLAGS) $$@ $(call source-to-object,$2)
 endef
@@ -111,7 +115,9 @@ define make-ats_zlog_program
   sources  += $2
 
   # The following line uses | to specify that check-env is a special prerequisite
-  $1: $(call source-to-object,$2) $(ats_zlog_lib) | check-env
+  $(call source-to-object,$2): | check-env
+
+  $1: $(call source-to-object,$2) $(ats_zlog_lib)
 	$(ATSCC) -o $$@ $$(filter %.o,$$^) \
           -l$(patsubst lib%.a,%,$(notdir $(ats_zlog_lib))) -L$(dir $(ats_zlog_lib)) \
           -lzlog -L$(ZLOG_LIB) -pthread
@@ -289,6 +295,7 @@ $(sats_c_dep) $(dats_c_dep): %.$(depgcc): %.c
 #
 $(ats_obj_files): %.o: %.c
 	$(COMPILE.c) $(ATS_CC_INC) $(OUTPUT_OPTION) $<
+
 
 
 
